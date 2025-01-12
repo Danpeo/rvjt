@@ -2,7 +2,7 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "RVJT"
-#define MyAppVersion "1.0"
+#define MyAppVersion "1.2"
 #define MyAppPublisher "Danilvar"
 #define MyAppURL "https://github.com/Danpeo"
 #define MyAppExeName "RVJT.exe"

@@ -24,11 +24,20 @@
 
             <Grid Margin="20, 0" ColumnDefinitions="*,*">
 
-                <Button
-                        VerticalAlignment="Center"
-                        HorizontalAlignment="Left"
+                <StackPanel Orientation="Horizontal"   VerticalAlignment="Center"
+                              HorizontalAlignment="Left">
+                    <Button
+                        Margin="0, 0, 20, 0"
                         Content="Clear"
                         Command="{Binding ClearInputCommand}" />
+
+                    <TextBlock VerticalAlignment="Center">Use Background Mode</TextBlock>
+                    <Button
+                        Margin="10, 0, 10, 0"
+                        Content="{Binding BackgroundMode, Converter={StaticResource BoolToOnOffText}}"
+                        Command="{Binding ToggleBackgroundModeCommand}" />
+                    
+                </StackPanel>
 
                 <Button Grid.Column="1"
                         VerticalAlignment="Center"

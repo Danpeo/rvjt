@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Linq;
 using System.Reactive;
+using System.Threading;
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Styling;
 using ReactiveUI;
@@ -25,7 +27,7 @@ public class MainWindowViewModel : ViewModelBase
         set => this.RaiseAndSetIfChanged(ref _outputText, value);
     }
 
-    private string _currentTheme;
+    private string _currentTheme = null!;
 
     public string CurrentTheme
     {
@@ -33,10 +35,34 @@ public class MainWindowViewModel : ViewModelBase
         set => this.RaiseAndSetIfChanged(ref _currentTheme, value);
     }
 
+    private bool _backgroundMode;
+
+    public bool BackgroundMode
+    {
+        get => _backgroundMode;
+        set
+        {
+            this.RaiseAndSetIfChanged(ref _backgroundMode, value);
+            if (value)
+                StartClipboardMonitor();
+            else
+                StopClipboardMonitor();
+        }
+    }
+
+    private string? _lastClipboardText;
+
+    private CancellationTokenSource? _clipboardMonitorCancellationTokenSource;
+
     public ReactiveCommand<Unit, Unit> RearrangeCommand { get; }
+
     public ReactiveCommand<Unit, Unit> CopyToClipboardCommand { get; }
+
     public ReactiveCommand<Unit, Unit> ClearInputCommand { get; }
+
     public ReactiveCommand<Unit, Unit> ToggleThemeCommand { get; }
+
+    public ReactiveCommand<Unit, Unit> ToggleBackgroundModeCommand { get; }
 
     public MainWindowViewModel()
     {
@@ -45,6 +71,45 @@ public class MainWindowViewModel : ViewModelBase
         CopyToClipboardCommand = ReactiveCommand.Create(CopyToClipboard);
         ClearInputCommand = ReactiveCommand.Create(ClearInput);
         ToggleThemeCommand = ReactiveCommand.Create(ToggleTheme);
+        ToggleBackgroundModeCommand = ReactiveCommand.Create(ToggleBackgroundMode);
+    }
+
+    private void StartClipboardMonitor()
+    {
+        _clipboardMonitorCancellationTokenSource?.Cancel(); 
+        _clipboardMonitorCancellationTokenSource = new CancellationTokenSource();
+
+        var cancellationToken = _clipboardMonitorCancellationTokenSource.Token;
+
+        Task.Run(async () =>
+        {
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                try
+                {
+                    var clipboardText = await Clipboard.Get().GetTextAsync();
+                    if (!string.IsNullOrWhiteSpace(clipboardText) && clipboardText != _lastClipboardText)
+                    {
+                        _lastClipboardText = clipboardText;
+                        InputText = clipboardText; 
+                        RearrangeText();         
+                    }
+                }
+                catch
+                {
+                    // ignore
+                }
+
+                await Task.Delay(500, cancellationToken); 
+            }
+        }, cancellationToken);
+    }
+
+    private void StopClipboardMonitor()
+    {
+        _clipboardMonitorCancellationTokenSource?.Cancel();
+        _clipboardMonitorCancellationTokenSource = null;
+        _lastClipboardText = null;
     }
 
     private void RearrangeText()
@@ -52,7 +117,7 @@ public class MainWindowViewModel : ViewModelBase
         if (InputText != null)
         {
             OutputText = string.Join(" ", InputText
-                .Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries)
+                .Split(['\n'], StringSplitOptions.RemoveEmptyEntries)
                 .Select(l => l.Trim())
                 .Where(s => !string.IsNullOrWhiteSpace(s))
                 .Reverse());
@@ -84,4 +149,6 @@ public class MainWindowViewModel : ViewModelBase
             Application.Current.RequestedThemeVariant = ThemeVariant.Light;
         }
     }
+
+    private void ToggleBackgroundMode() => BackgroundMode = !BackgroundMode;
 }
